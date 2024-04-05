@@ -1,0 +1,59 @@
+﻿@page "/dadjoke"
+@rendermode InteractiveServer
+@using System.Net.Http.Headers;
+<PageTitle>Counter</PageTitle>
+
+<h1>Dad Joke</h1>
+@if (dadJoke.ToString() == "")
+{
+    <p><em>Click button to get a dad joke</em></p>
+}
+else
+{
+<p role="status"> @dadJoke</p>
+}
+<button class="btn btn-primary" @onclick="GetDadJoke">Click me</button>
+
+@code {
+    private object dadJoke = "";
+
+
+
+    private async void GetDadJoke()
+    {
+
+        Dictionary<string, object> result = await GetFromDadJokeAPI();
+        dadJoke = result["joke"];
+    }
+
+    public async Task<Dictionary<string, object>> GetFromDadJokeAPI()
+    {
+        var client = new HttpClient();
+        client.BaseAddress = new Uri("https://icanhazdadjoke.com/");
+
+
+        // Add an Accept header for JSON format.
+        client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+        // Get data response
+        var response = client.GetAsync("").Result;
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Parse the response body
+            var dataObjects = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+            if (dataObjects == null)
+            {
+                dataObjects = new Dictionary<string, object>();
+            }
+            return dataObjects;
+
+        }
+        else
+        {
+            Dictionary<string, object> res = new Dictionary<string, object>(1);
+            res.Add("joke", response.StatusCode);
+            return res;
+        }
+    }
+}
