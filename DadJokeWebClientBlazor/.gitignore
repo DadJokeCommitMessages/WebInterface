@@ -1,8 +1,0 @@
-.vs/
-DadJokeWebClient/bin/
-DadJokeWebClient/obj/
-*.user
-DadJokeWebClient/artifacts/
-.vscode/
-.dotnet/
-*.binlog
