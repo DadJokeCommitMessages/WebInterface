@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.WebHost.UseUrls("http://*:8080");
+builder.WebHost.UseUrls("http://*:80");
 
 var app = builder.Build();
 
