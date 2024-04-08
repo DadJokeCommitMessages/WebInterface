@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.WebHost.UseUrls("http://*:80");
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
