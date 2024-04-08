@@ -1,0 +1,315 @@
+﻿@page "/myjokes"
+@rendermode InteractiveServer
+@using System.Net.Http.Headers;
+@using System.Text.RegularExpressions;
+<PageTitle>Weather</PageTitle>
+
+<h1>My Jokes</h1>
+
+<p>This shows all the jokes that you have submitted.</p>
+
+@if (jokes == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Joke</th>
+                <th>Joke Type </th>
+                <th>Actions </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var joke in jokes)
+            {
+                <tr>
+                    <td>@joke.JokeID</td>
+                    <td>@joke.Story</td>
+                    <td>@joke.JokeType</td>
+                    <td>
+                        <button type="button" class="btn btn-primary" id="@joke.JokeID" @onclick="() => DeleteJoke(joke)">
+                            Delete Joke
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h2 > Add a joke here</h2>
+
+
+    <input class="form-control" id="jokeInput" aria-describedby="Enter a joke" placeholder="Enter Joke" @oninput="JokeChange"
+           required
+           value="@story" />
+
+    <select class="form-select" aria-label="Default select example" @oninput="TypeChange">
+        <option selected>Select a joke type</option>
+            @foreach (var type in jokeTypes)
+            {
+            <option value="@type.TypeName">@type.TypeName</option>
+            }
+    </select>
+
+    <span class="text-danger">@validationMessage</span>
+    <button class="btn btn-primary" id="add_joke" @onclick="AddJoke">Add Joke</button>
+    
+    <p>
+        @message
+    </p>
+}
+@code {
+    private Joke[]? jokes;
+    private string message = "";
+    private string ApiRoot = GlobalVariables.ApiRoot;
+    private string? validationMessage;
+    private JokeType[] jokeTypes = Enumerable.Range(1, 1).Select(index => new JokeType{ID = index,TypeName = "error getting joke types",}).ToArray();
+
+    [Parameter]
+    public string? story { get; set; }
+
+    [Parameter]
+    public EventCallback<string> JokeChanged { get; set; }
+
+    [Parameter]
+    public string? selectedType { get; set; }
+
+    [Parameter]
+    public EventCallback<string> selectedTypeChange { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var client = new HttpClient();
+        client.BaseAddress = new Uri($"{ApiRoot}");
+
+
+        // Add an Accept header for JSON format.
+        client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "please sign in on the home page";
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+        }
+        // Get data response
+        var response = client.GetAsync("api/jokeType/all").Result;
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Parse the response body
+            string[]? types = await response.Content.ReadFromJsonAsync<string[]>();
+            if (types != null)
+            {
+                jokeTypes = Enumerable.Range(1, types.Length - 1).Select(index => new JokeType
+                    {
+                        ID = index,
+                        TypeName = types[index],
+                    }).ToArray();
+            }
+        }
+        else
+        {
+            message = "Something went wrong in fetching the types";
+        }
+
+
+        RefreshJokeList();
+
+    }
+
+    private async void RefreshJokeList()
+    {
+        // Get data response
+        var client = new HttpClient();
+        client.BaseAddress = new Uri($"{ApiRoot}/user/jokes");
+        // Add an Accept header for JSON format.
+        client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "please sign in on the home page";
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+        }
+        var response = client.GetAsync("").Result;
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Parse the response body
+            jokes = await response.Content.ReadFromJsonAsync<Joke[]>();
+
+        }
+        else
+        {
+            message = $"{response.StatusCode}: Something went wrong in fetching your jokes";
+        }
+    }
+
+    private void  DeleteJoke(Joke joke)
+    {
+        message = $"Deleting {joke.JokeID}";
+        //hit the database and delete the todo
+        var client = new HttpClient();
+        client.BaseAddress = new Uri($"{ApiRoot}/joke/{joke.JokeID}");
+
+        // Add an Accept header for JSON format.
+        client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "Please sign in on the home page";
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+        }
+
+        // Get data response
+        var response = client.DeleteAsync("").Result;
+
+        if (response.IsSuccessStatusCode)
+        {
+            message = $"Joke successfully deleted! You deleted: {joke.Story}";
+            RefreshJokeList();
+        }
+        else
+        {
+            message = $"{response.StatusCode}: there was an error deleting your joke";
+        }
+
+    }
+
+    private Task TypeChange(ChangeEventArgs e)
+    {
+        selectedType = e?.Value?.ToString();
+
+        if (!jokeTypes.Select(type => type.TypeName).Contains(selectedType))
+        {
+            validationMessage = "Please select a type";
+            return Task.CompletedTask;
+        }
+        else
+        {
+            validationMessage = string.Empty;
+            return selectedTypeChange.InvokeAsync(selectedType);
+        }
+
+    }
+    private Task JokeChange(ChangeEventArgs e)
+    {
+        story = e?.Value?.ToString();
+
+
+        if (story == null || story == "" )
+        {
+            validationMessage = "Please enter a joke";
+            return Task.CompletedTask;
+        } else if (story.Length<=10)
+        {
+            validationMessage = "Joke must be longer than 10 characters";
+            return Task.CompletedTask;
+        }
+        else if (story.Length >= 255)
+        {
+            validationMessage = "Joke must be shorter than 255 characters";
+            return Task.CompletedTask;
+        }
+        else if (Regex.Match(story, "\\A\\s*\\z").Success)
+        {
+            validationMessage = "Joke cannot be whitespace";
+            return Task.CompletedTask;
+        }
+        else
+        {
+            validationMessage = string.Empty;
+            return JokeChanged.InvokeAsync(story);
+        }
+
+    }
+    private void AddJoke()
+    {
+        if (story != null && story != "" && selectedType != null && jokeTypes.Select(type => type.TypeName).Contains(selectedType))
+        {
+            message = $"Adding {story} {selectedType}";
+            // hit the api
+            var client = new HttpClient();
+            client.BaseAddress = new Uri($"{ApiRoot}/joke");
+
+            // Add an Accept header for JSON format.
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+            if (GlobalVariables.AccessToken == null)
+            {
+                message = "please sign in on the home page";
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+            }
+
+            // Get data response
+
+            PostJoke newJoke = new PostJoke(story, selectedType);
+
+
+            var response = client.PostAsJsonAsync<PostJoke>("",newJoke).Result;
+
+            if (response.IsSuccessStatusCode)
+            {
+                message = "Joke successfully submitted!";
+                RefreshJokeList();
+            }
+            else
+            {
+                message = $"{response.StatusCode}: there was an error submitting your joke";
+            }
+
+        }
+        else
+        {
+            validationMessage = "Please enter a joke or make sure you've selected a type";
+        }
+
+
+
+    }
+
+    private class Joke
+    {
+        public int JokeID { get; set; }
+        public string? Story { get; set; }
+        public string? JokeType { get; set; }
+    }
+
+    private class JokeType
+    {
+        public int ID { get; set; }
+        public string? TypeName { get; set; }
+        public override string ToString()
+        {
+            return TypeName ==null ? "":TypeName ;
+        }
+    }
+    private class PostJoke
+    {
+        public string? Story { get; set; }
+        public string? JokeType { get; set; }
+
+        public PostJoke(string? Story, string?  JokeType)
+        {
+            this.Story = Story;
+            this.JokeType = JokeType;
+        }
+    }
+}

@@ -10,31 +10,126 @@
 }
 else
 {
-<p role="status"> @dadJoke</p>
+<p role="status"> git commit -m "@dadJoke"</p>
 }
-<button class="btn btn-primary" @onclick="GetDadJoke">Click me</button>
+
+
+<h4> @message  </h4>
+
+    <ul >
+        <li><button class="btn btn-primary" @onclick="() => GetDadJoke()">Random</button></li>
+
+    @if (jokeTypes == null)
+        {
+        <li><em>Loading...</em></li>
+    }
+    else
+    {
+        @foreach (var type in jokeTypes)
+        {
+            <li><button class="btn btn-primary" @onclick="() => GetDadJoke(type.TypeName)">@type.TypeName</button></li>
+        }
+    }
+
+    </ul>
+
+
+
 
 @code {
     private object dadJoke = "";
+    private string ApiRoot = GlobalVariables.ApiRoot;
+    private JokeType[]? jokeTypes;
+    private string? message;
 
-
-
-    private async void GetDadJoke()
+    protected override async Task OnInitializedAsync()
     {
+        // Simulate asynchronous loading to demonstrate streaming rendering
 
-        Dictionary<string, object> result = await GetFromDadJokeAPI();
-        dadJoke = result["joke"];
-    }
-
-    public async Task<Dictionary<string, object>> GetFromDadJokeAPI()
-    {
         var client = new HttpClient();
-        client.BaseAddress = new Uri("https://icanhazdadjoke.com/");
+        client.BaseAddress = new Uri($"{ApiRoot}/jokeType/all");
 
 
         // Add an Accept header for JSON format.
         client.DefaultRequestHeaders.Accept.Add(
         new MediaTypeWithQualityHeaderValue("application/json"));
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "Please sign in on the home page";
+        }else{
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+        }
+        // Get data response
+        var response = client.GetAsync("").Result;
+
+        if (response.IsSuccessStatusCode)
+        {
+            // Parse the response body
+            string[]? types = await response.Content.ReadFromJsonAsync<string[]>();
+            if (types != null){
+                jokeTypes = Enumerable.Range(1, types.Length-1).Select(index => new JokeType
+            {
+                ID = index,
+                TypeName = types[index],
+            }).ToArray();
+            }
+        }
+        else
+        {
+            message = "Something went wrong in fetching the types, you can just get a random joke at this time";
+        }
+
+
+    }
+
+    private class JokeType
+    {
+        public int ID { get; set; }
+        public string? TypeName { get; set; }
+    }
+
+    private async void GetDadJoke()
+    {
+        Dictionary<string, object> result = await GetFromDadJokeAPI("");
+        dadJoke = result["story"];
+    }
+
+    private async void GetDadJoke(string? jokeType)
+    {
+        if (jokeType == null)
+        {
+            jokeType = "random";
+        }
+        Dictionary<string, object> result = await GetFromDadJokeAPI(jokeType);
+        if (!result.ContainsKey("story"))
+        {
+            dadJoke = "Why did the software engineer not submit a commit message? Because he couldn't commit to one";
+            message = "No dad joke exists for this type. Maybe you can be the first to submit one";
+        } else
+        {
+            message = "";
+            dadJoke = result["story"];
+        }
+
+    }
+
+    public async Task<Dictionary<string, object>> GetFromDadJokeAPI(string jokeType)
+    {
+        var client = new HttpClient();
+        client.BaseAddress = new Uri($"{ApiRoot}/joke?jokeType={jokeType}");
+
+
+        // Add an Accept header for JSON format.
+        client.DefaultRequestHeaders.Accept.Add(
+        new MediaTypeWithQualityHeaderValue("application/json"));
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "please sign in on the home page";
+        }
+        else
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+        }
         // Get data response
         var response = client.GetAsync("").Result;
 
@@ -56,4 +151,5 @@ else
             return res;
         }
     }
+
 }

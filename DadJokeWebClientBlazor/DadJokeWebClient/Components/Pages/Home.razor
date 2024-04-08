@@ -1,7 +1,102 @@
 ﻿@page "/"
-
+@rendermode InteractiveServer
+@using System.Net.Http.Headers;
+@using Microsoft.AspNetCore.WebUtilities;
+@using System.Threading.Tasks;
+@using System.Net;
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, you bespectacled developers!</h1>
 
 Tired of writing helpful commit messages? Well, you've come to the right place. Head on over to the Dad Joke section to get a dad joke to use as a commit message.
+
+
+ <a href=@url target="_blank">
+    <button class="btn btn-primary" id="oauth" >Sign In using Google</button>
+</a>
+
+<p> @message </p>
+
+@code {
+    static string? clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
+    static string? clientID = Environment.GetEnvironmentVariable("CLIENT_ID");
+
+
+    object url = $"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={clientID}&scope=openid%20profile%20email&redirect_uri=https://localhost:7120";
+
+    object message = "";
+
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? authcode { get; set; }
+
+    protected override async void OnInitialized()
+    {
+        if (clientSecret is null)
+        {
+            Console.WriteLine("Environment Variable 'CLIENT_SECRET' is not set.");
+            Environment.Exit(0);
+        }
+        if (clientID is null)
+        {
+            Console.WriteLine("Environment Variable 'CLIENT_ID' is not set.");
+            Environment.Exit(0);
+        }
+
+
+        if (authcode != null)
+        {
+            message = "We are processing your sign in...";
+
+            var client = new HttpClient();
+
+            string uri = $"https://oauth2.googleapis.com/token?client_id={clientID}&client_secret={clientSecret}&redirect_uri=https://localhost:7120&grant_type=authorization_code&code={authcode}";
+
+            client.BaseAddress = new Uri(uri);
+
+            // Add an Accept header for JSON format.
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+            // Get data response
+            var response = client.PostAsync(client.BaseAddress, null).Result;
+
+            if (GlobalVariables.IsAccessTokenValid())
+            {
+                message = "Successfully signed in!";
+            }else if (response.IsSuccessStatusCode)
+            
+            {
+                //Parse the response body
+                var dataObjects = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+                if (dataObjects == null)
+                {
+                    dataObjects = new Dictionary<string, object>();
+                }
+                GlobalVariables.AccessToken = dataObjects["access_token"].ToString();
+                if (GlobalVariables.AccessToken != null)
+                {
+                    message = "Successfully signed in!";
+                }
+                else
+                {
+                    message = "Oauth failed - the token got recieved from Google but the server failed to save it";
+                }
+
+            }
+            else
+            {
+                Dictionary<string, object> res = new Dictionary<string, object>(1);
+                message = $"{response.StatusCode}: the access token could not be retreived from Google";
+
+            }
+        }
+
+
+
+
+        
+    }
+}
+
+
+
+
