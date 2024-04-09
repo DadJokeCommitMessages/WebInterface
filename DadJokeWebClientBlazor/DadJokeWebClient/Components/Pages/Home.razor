@@ -22,7 +22,7 @@ Tired of writing helpful commit messages? Well, you've come to the right place. 
     static string? clientID = Environment.GetEnvironmentVariable("CLIENT_ID");
 
 
-    object url = $"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={clientID}&scope=openid%20profile%20email&redirect_uri=https://localhost:7120";
+    object url = $"https://accounts.google.com/o/oauth2/auth?response_type=code&client_id={clientID}&scope=openid%20profile%20email&redirect_uri={GlobalVariables.RedirectURL}";
 
     object message = "";
 
@@ -49,7 +49,7 @@ Tired of writing helpful commit messages? Well, you've come to the right place. 
 
             var client = new HttpClient();
 
-            string uri = $"https://oauth2.googleapis.com/token?client_id={clientID}&client_secret={clientSecret}&redirect_uri=https://localhost:7120&grant_type=authorization_code&code={authcode}";
+            string uri = $"https://oauth2.googleapis.com/token?client_id={clientID}&client_secret={clientSecret}&redirect_uri={GlobalVariables.RedirectURL}&grant_type=authorization_code&code={authcode}";
 
             client.BaseAddress = new Uri(uri);
 
