@@ -1,5 +1,6 @@
 ﻿@page "/dadjoke"
 @rendermode InteractiveServer
+@implements IAsyncDisposable;
 @using System.Net.Http.Headers;
 @inject IJSRuntime JS;
 <PageTitle>Counter</PageTitle>
@@ -38,13 +39,7 @@ else
 
     </ul>
 
-    <script>
-        copyClipboard = (dadJoke)=>{
-            var copyText = 'git commit -m "' + dadJoke +'"' ;
-            navigator.clipboard.writeText(copyText)
-            alert("Copied the text: " + copyText);
-        }
-    </script>
+    <script src="./Components/Pages/Dadjoke.razor.js"/>
 
 
 @code {
@@ -92,12 +87,18 @@ else
 
 
     }
-
-    private async void copyToClipboard()
+    private IJSObjectReference? module;
+    private async Task copyToClipboard()
     {
-        await JS.InvokeVoidAsync("copyClipboard", dadJoke);
+            module = await JS.InvokeAsync<IJSObjectReference>("copyClipboard", dadJoke);
     }
-
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
     private class JokeType
     {
         public int ID { get; set; }
