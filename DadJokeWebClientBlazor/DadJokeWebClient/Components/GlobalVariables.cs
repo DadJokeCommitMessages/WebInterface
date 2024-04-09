@@ -8,7 +8,7 @@ namespace DadJokeWebClient.Components
 
         public static string ApiRoot { get; } = "http://ec2-3-250-229-22.eu-west-1.compute.amazonaws.com:5282/api";
         public static string? AccessToken { get; set; }
-
+        public static string? RedirectURL { get; set; } = "http://ec2-54-74-121-143.eu-west-1.compute.amazonaws.com";
         public static Boolean IsAccessTokenValid()
         {
             if (AccessToken == null)
