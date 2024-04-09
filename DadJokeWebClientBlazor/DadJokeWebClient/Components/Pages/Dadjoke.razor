@@ -1,6 +1,7 @@
 ﻿@page "/dadjoke"
 @rendermode InteractiveServer
 @using System.Net.Http.Headers;
+@inject IJSRuntime JS;
 <PageTitle>Counter</PageTitle>
 
 <h1>Dad Joke</h1>
@@ -10,7 +11,11 @@
 }
 else
 {
-<p role="status"> git commit -m "@dadJoke"</p>
+    <div id="dadJokeDiv">
+        <code role="status"> git commit -m "@dadJoke"</code>
+        <button id="copyButton" @onclick="copyToClipboard">Copy text</button>
+    </div>
+
 }
 
 
@@ -33,7 +38,13 @@ else
 
     </ul>
 
-
+    <script>
+    window.copyClipboard = (dadJoke)=>{
+            var copyText = 'git commit -m "' + dadJoke +'"' ;
+            navigator.clipboard.writeText(copyText)
+            alert("Copied the text: " + copyText);
+        }
+    </script>
 
 
 @code {
@@ -80,6 +91,11 @@ else
         }
 
 
+    }
+
+    private async void copyToClipboard()
+    {
+        await JS.InvokeVoidAsync("copyClipboard", dadJoke);
     }
 
     private class JokeType
