@@ -2,13 +2,17 @@
 @rendermode InteractiveServer
 @using System.Net.Http.Headers;
 @using System.Text.RegularExpressions;
-<PageTitle>Weather</PageTitle>
+<PageTitle>My Jokes</PageTitle>
 
 <h1>My Jokes</h1>
 
 <p>This shows all the jokes that you have submitted.</p>
 
-@if (jokes == null)
+@if (!GlobalVariables.IsAccessTokenValid())
+{
+   <h4>You need to sign in on the home page to access this page</h4> 
+}
+else if (jokes == null)
 {
     <p><em>Loading...</em></p>
 }
