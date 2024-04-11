@@ -28,17 +28,44 @@ else
             {
                 <tr>
                     <td>@joke.JokeID</td>
-                    <td>@joke.Story</td>
-                    <td>@joke.JokeType</td>
+                    <td>
+                        @if (!toggleEdit){
+                            <p @onclick = "()=>{ toggleEdit = true;}"> 
+                                @joke.Story
+                            </p>
+                        }
+                        else
+                        {
+                            <input class="form-control" id="jokeUpdateInput" aria-describedby="Enter a joke" placeholder="@joke.Story" @oninput="JokeUpdateChange"
+                                   required
+                                   value="@storyUpdate" />
+                        }
+
+                    </td>
+                    <td>
+                    <select class="form-select" aria-label="Default select example" @oninput="TypeUpdateChange">
+                        <option selected>@joke.JokeType</option>
+                        @foreach (var type in jokeTypes)
+                        {
+                            if (@type.TypeName != @joke.JokeType){
+                            <option value="@type.TypeName">@type.TypeName</option>
+                            }
+                        }
+                    </select>
+                    </td>
                     <td>
                         <button type="button" class="btn btn-primary" id="@joke.JokeID" @onclick="() => DeleteJoke(joke)">
                             Delete Joke
+                        </button>
+                        <button type="button" class="btn btn-primary" id="@joke.JokeID-update" @onclick="() => UpdateJoke(joke)">
+                            Save your update
                         </button>
                     </td>
                 </tr>
             }
         </tbody>
     </table>
+    <span class="text-danger">@validationUpdateMessage</span>
 
     <h2 > Add a joke here</h2>
 
@@ -65,6 +92,8 @@ else
 @code {
     private Joke[]? jokes;
     private string message = "";
+    private string validationUpdateMessage = "";
+    private bool toggleEdit = false;
     private string ApiRoot = GlobalVariables.ApiRoot;
     private string? validationMessage;
     private JokeType[] jokeTypes = Enumerable.Range(1, 1).Select(index => new JokeType{ID = index,TypeName = "error getting joke types",}).ToArray();
@@ -80,6 +109,18 @@ else
 
     [Parameter]
     public EventCallback<string> selectedTypeChange { get; set; }
+
+    [Parameter]
+    public string? storyUpdate { get; set; }
+
+    [Parameter]
+    public EventCallback<string> JokeUpdateChanged { get; set; }
+
+    [Parameter]
+    public string? selectedTypeUpdate { get; set; }
+
+    [Parameter]
+    public EventCallback<string> selectedTypeUpdateChange { get; set; }
 
 
     protected override async Task OnInitializedAsync()
@@ -188,6 +229,107 @@ else
             message = $"{response.StatusCode}: there was an error deleting your joke";
         }
 
+    }
+
+    private Task TypeUpdateChange(ChangeEventArgs e)
+    {
+        selectedTypeUpdate = e?.Value?.ToString();
+
+        if (!jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate))
+        {
+            validationUpdateMessage = "Please select a type";
+            return Task.CompletedTask;
+        }
+        else
+        {
+            validationUpdateMessage = string.Empty;
+            return selectedTypeUpdateChange.InvokeAsync(selectedTypeUpdate);
+        }
+
+    }
+    private Task JokeUpdateChange(ChangeEventArgs e)
+    {
+        storyUpdate = e?.Value?.ToString();
+
+
+        if (storyUpdate == null || storyUpdate == "")
+        {
+            validationUpdateMessage = "Please enter a joke";
+            return Task.CompletedTask;
+        }
+        else if (storyUpdate.Length <= 10)
+        {
+            validationUpdateMessage = "Joke must be longer than 10 characters";
+            return Task.CompletedTask;
+        }
+        else if (storyUpdate.Length >= 255)
+        {
+            validationUpdateMessage = "Joke must be shorter than 255 characters";
+            return Task.CompletedTask;
+        }
+        else if (Regex.Match(storyUpdate, "\\A\\s*\\z").Success)
+        {
+            validationUpdateMessage = "Joke cannot be whitespace";
+            return Task.CompletedTask;
+        }
+        else
+        {
+            validationUpdateMessage = string.Empty;
+            return JokeUpdateChanged.InvokeAsync(storyUpdate);
+        }
+
+    }
+
+    private void UpdateJoke(Joke joke)
+    {
+        if ((storyUpdate == null || storyUpdate == "") && (selectedTypeUpdate == null || !jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate)) && !toggleEdit)
+        {
+            validationUpdateMessage = "You haven't made a change so no update need be applied. \nTo update the joke click on the joke text";           
+        }
+        else
+        {
+            if ( selectedTypeUpdate == null || jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate))
+            {
+                selectedTypeUpdate = joke.JokeType;
+            }
+            if (storyUpdate == null || storyUpdate == "")
+            {
+                storyUpdate = joke.Story;
+            }
+            validationUpdateMessage = $"Updating {joke.JokeID}";
+            //hit the database and delete the todo
+            var client = new HttpClient();
+            client.BaseAddress = new Uri($"{ApiRoot}/joke/{joke.JokeID}");
+
+            // Add an Accept header for JSON format.
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+            if (GlobalVariables.AccessToken == null)
+            {
+                message = "please sign in on the home page";
+            }
+            else
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(GlobalVariables.AccessToken);
+            }
+
+            // Get data response
+
+            PostJoke newJoke = new PostJoke(storyUpdate, selectedTypeUpdate);
+
+
+            var response = client.PutAsJsonAsync<PostJoke>("", newJoke).Result;
+
+            if (response.IsSuccessStatusCode)
+            {
+                validationUpdateMessage = "Joke successfully updated!";
+                RefreshJokeList();
+            }
+            else
+            {
+                validationUpdateMessage = $"{response.StatusCode}: there was an error updating your joke";
+            }
+        }
     }
 
     private Task TypeChange(ChangeEventArgs e)
