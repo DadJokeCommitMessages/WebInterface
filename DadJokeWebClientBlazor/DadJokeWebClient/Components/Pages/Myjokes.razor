@@ -10,7 +10,7 @@
 
 @if (jokes == null)
 {
-    <p><em>Loading...Please Sign in if you haven't already.</em></p>
+    <p><em>Loading...</em></p>
 }
 else
 {
@@ -77,8 +77,8 @@ else
                required
                value="@story" 
         />
-        <select style="margin-bottom: 10px" class="form-select" aria-label="Default select example" @oninput="TypeChange" @bind="selectedType">
-            <option value="placeholder" selected>Select a joke type</option>
+        <select style="margin-bottom: 10px" class="form-select" aria-label="Default select example" @oninput="TypeChange">
+            <option selected>Select a joke type</option>
             @foreach (var type in jokeTypes)
             {
                 <option value="@type.TypeName">@type.TypeName</option>
@@ -421,8 +421,6 @@ else
             {
                 message = "Joke successfully submitted!";
                 RefreshJokeList();
-                story = "";
-                selectedType = "placeholder";
             }
             else
             {
