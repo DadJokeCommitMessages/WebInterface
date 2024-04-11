@@ -299,10 +299,12 @@ else
             {
                 selectedTypeUpdate = joke.JokeType;
             }
-            if (storyUpdate == null || storyUpdate == "")
+            if (storyUpdate == null || storyUpdate == "" || joke.JokeID != toggleEditOfJoke)
             {
                 storyUpdate = joke.Story;
+                toggleEditOfJoke = -1;
             }
+
             validationUpdateMessage = $"Updating {joke.JokeID}";
             //hit the database and delete the todo
             var client = new HttpClient();
