@@ -26,7 +26,10 @@
                 Sign In
             </button>
         </a>
-    <p style="color: black">@message</p>
+        <button class="btn btn-primary" @onclick="LogOut">
+            Log Out
+        </button>
+        <p style="color: black">@message</p>
     </section>
   
     <section>
@@ -45,6 +48,9 @@
 
     [SupplyParameterFromQuery(Name = "code")]
     public string? authcode { get; set; }
+    
+    [Inject]
+    NavigationManager NavigationManager { get; set; }
 
     protected override async void OnInitialized()
     {
@@ -103,14 +109,25 @@
             {
                 Dictionary<string, object> res = new Dictionary<string, object>(1);
                 message = $"{response.StatusCode}: the access token could not be retreived from Google";
-
             }
         }
 
-
-
-
+    }
+    
+    private void LogOut()
+    {
         
+        if (GlobalVariables.AccessToken == null)
+        {
+            message = "You are not logged in.";
+            return;
+        }
+        
+        GlobalVariables.AccessToken = null;
+        
+        message = "Logged Out Successfully";
+        
+        NavigationManager.NavigateTo("/", forceLoad: true);
     }
 }
 

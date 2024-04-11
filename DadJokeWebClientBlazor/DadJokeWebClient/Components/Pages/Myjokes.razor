@@ -8,23 +8,19 @@
 
 <p>This shows all the jokes that you have submitted.</p>
 
-@if (!GlobalVariables.IsAccessTokenValid())
+@if (jokes == null)
 {
-   <h4>You need to sign in on the home page to access this page</h4> 
-}
-else if (jokes == null)
-{
-    <p><em>Loading...</em></p>
+    <p><em>Loading...Please Sign in if you haven't already.</em></p>
 }
 else
 {
     <table class="table">
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Joke</th>
-                <th>Joke Type </th>
-                <th>Actions </th>
+                <th width="5%">ID</th>
+                <th width="40%">Joke</th>
+                <th width="15%">Joke Type </th>
+                <th width="40%">Actions </th>
             </tr>
         </thead>
         <tbody>
@@ -75,25 +71,24 @@ else
     </table>
     <span class="text-danger">@validationUpdateMessage</span>
 
-    <h2 > Add a joke here</h2>
-
-
-    <input class="form-control" id="jokeInput" aria-describedby="Enter a joke" placeholder="Enter Joke" @oninput="JokeChange"
-           required
-           value="@story" />
-
-    <select class="form-select" aria-label="Default select example" @oninput="TypeChange">
-        <option selected>Select a joke type</option>
+    <div style="margin-top: 30px">
+        <h2 style="margin-bottom: 10px">Add New Joke</h2>
+        <input style="margin-bottom: 10px" class="form-control" id="jokeInput" aria-describedby="Enter a joke" placeholder="Enter Joke" @oninput="JokeChange"
+               required
+               value="@story" 
+        />
+        <select style="margin-bottom: 10px" class="form-select" aria-label="Default select example" @oninput="TypeChange" @bind="selectedType">
+            <option value="placeholder" selected>Select a joke type</option>
             @foreach (var type in jokeTypes)
             {
-            <option value="@type.TypeName">@type.TypeName</option>
+                <option value="@type.TypeName">@type.TypeName</option>
             }
-    </select>
+        </select>
+        <span class="text-danger" style="display: block">@validationMessage</span>
+        <button class="btn btn-primary" id="add_joke" @onclick="AddJoke">Add Joke</button>
+    </div>
 
-    <span class="text-danger">@validationMessage</span>
-    <button class="btn btn-primary" id="add_joke" @onclick="AddJoke">Add Joke</button>
-    
-    <p>
+    <p style="margin-top: 5px">
         @message
     </p>
 }
@@ -426,6 +421,8 @@ else
             {
                 message = "Joke successfully submitted!";
                 RefreshJokeList();
+                story = "";
+                selectedType = "placeholder";
             }
             else
             {
