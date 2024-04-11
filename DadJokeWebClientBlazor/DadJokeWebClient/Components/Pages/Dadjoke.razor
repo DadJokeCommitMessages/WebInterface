@@ -5,52 +5,73 @@
 @inject IJSRuntime JS;
 <PageTitle>Counter</PageTitle>
 
-<h1>Dad Joke</h1>
-@if (dadJoke.ToString() == "")
-{
-    <p><em>Click button to get a dad joke</em></p>
-}
-else
-{
-    <div id="dadJokeDiv">
-        <code role="status"> git commit -m "@dadJoke"</code>
-        <button id="copyButton" @onclick="copyToClipboard">Copy text</button>
+<style>
+    .d-flex {
+      gap: 10%;  
+    }
+    
+</style>
+
+<article class="container d-flex">
+    <section class="col-6" style="margin-top: 15%">
+        <h1 class="row">Get a Dad Joke</h1>
+        <code class="row" role="status"> git commit -m "@dadJoke"</code>
+        <button class="btn btn-primary row mt-5" style="width: 100%" id="copyButton" @onclick="copyToClipboard">Copy Commit Message</button>
+    </section>
+    
+    <section class="container col-4 card" style="padding: 17% 5%; background-color: lightgray">
+        <div class="form-group row">
+            <label for="commitType" class="pb-1">Type Of Commit:</label>
+            <select class="form-control form-select" id="commitType" @bind="selectedCommitType">
+              <option value="" selected>any</option>
+              @if (jokeTypes != null)
+              {
+                  @foreach (var option in jokeTypes)
+                  {
+                      <option value="@option.TypeName">@option.TypeName</option>
+                  }
+              }
+            </select>
+            <button class="btn btn-primary mt-4" style="width: 100%" @onclick:preventDefault="true" @onclick="() => GetDadJoke(selectedCommitType)">Get Joke</button>
+          </div>
+    </section>
+</article>
+
+<h4> @message </h4>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Notification</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+          @message
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
     </div>
+  </div>
+</div>
 
-}
-
-
-<h4> @message  </h4>
-
-    <ul >
-        <li><button class="btn btn-primary" @onclick="() => GetDadJoke()">Random</button></li>
-
-    @if (jokeTypes == null)
-        {
-        <li><em>Loading...</em></li>
-    }
-    else
-    {
-        @foreach (var type in jokeTypes)
-        {
-            <li><button class="btn btn-primary" @onclick="() => GetDadJoke(type.TypeName)">@type.TypeName</button></li>
-        }
-    }
-
-    </ul>
-
-    <script src="./Components/Pages/Dadjoke.razor.js"/>
+<script src="./Components/Pages/Dadjoke.razor.js"/>
 
 
 @code {
-    private object dadJoke = "";
+    private object dadJoke = "The amazingly funny joke will display here!";
     private string ApiRoot = GlobalVariables.ApiRoot;
     private JokeType[]? jokeTypes;
     private string? message;
+    private string selectedCommitType = "";
 
     protected override async Task OnInitializedAsync()
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
+        
 
         var client = new HttpClient();
         client.BaseAddress = new Uri($"{ApiRoot}/jokeType/all");
@@ -105,29 +126,27 @@ else
         public string? TypeName { get; set; }
     }
 
-    private async void GetDadJoke()
-    {
-        Dictionary<string, object> result = await GetFromDadJokeAPI("");
-        dadJoke = result["story"];
-    }
 
     private async void GetDadJoke(string? jokeType)
     {
-        if (jokeType == null)
+        if (string.IsNullOrEmpty(jokeType))
         {
             jokeType = "random";
         }
+        
         Dictionary<string, object> result = await GetFromDadJokeAPI(jokeType);
+        
         if (!result.ContainsKey("story"))
         {
             dadJoke = "Why did the software engineer not submit a commit message? Because he couldn't commit to one";
+            
             message = "No dad joke exists for this type. Maybe you can be the first to submit one";
-        } else
+        } 
+        else 
         {
             message = "";
             dadJoke = result["story"];
         }
-
     }
 
     public async Task<Dictionary<string, object>> GetFromDadJokeAPI(string jokeType)
