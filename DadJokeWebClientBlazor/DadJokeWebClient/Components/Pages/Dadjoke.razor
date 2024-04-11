@@ -11,11 +11,7 @@
     }
     
 </style>
-@if (!GlobalVariables.IsAccessTokenValid())
-{
-   <h4>You need to sign in on the home page to access this page</h4> 
-}
-else {
+
 <article class="container d-flex">
     <section class="col-6" style="margin-top: 15%">
         <h1 class="row">Get a Dad Joke</h1>
@@ -42,7 +38,7 @@ else {
 </article>
 
 <h4> @message </h4>
-}
+
 <script src="./Components/Pages/Dadjoke.razor.js"/>
 
 
