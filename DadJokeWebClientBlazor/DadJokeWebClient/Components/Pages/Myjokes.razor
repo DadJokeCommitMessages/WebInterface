@@ -29,8 +29,9 @@ else
                 <tr>
                     <td>@joke.JokeID</td>
                     <td>
-                        @if (!toggleEdit){
-                            <p @onclick = "()=>{ toggleEdit = true;}"> 
+                        @if (toggleEditOfJoke != @joke.JokeID)
+                        {
+                            <p @onclick = "()=>{ toggleEditOfJoke = joke.JokeID; storyUpdate=joke.Story;}"> 
                                 @joke.Story
                             </p>
                         }
@@ -44,11 +45,14 @@ else
                     </td>
                     <td>
                     <select class="form-select" aria-label="Default select example" @oninput="TypeUpdateChange">
-                        <option selected>@joke.JokeType</option>
                         @foreach (var type in jokeTypes)
                         {
-                            if (@type.TypeName != @joke.JokeType){
-                            <option value="@type.TypeName">@type.TypeName</option>
+                            if (type.TypeName == joke.JokeType){
+                                    <option selected value="@type.TypeName">@type.TypeName</option>
+                            }
+                            else
+                            {
+                                <option value="@type.TypeName">@type.TypeName</option>
                             }
                         }
                     </select>
@@ -93,7 +97,7 @@ else
     private Joke[]? jokes;
     private string message = "";
     private string validationUpdateMessage = "";
-    private bool toggleEdit = false;
+    private int toggleEditOfJoke=-1;
     private string ApiRoot = GlobalVariables.ApiRoot;
     private string? validationMessage;
     private JokeType[] jokeTypes = Enumerable.Range(1, 1).Select(index => new JokeType{ID = index,TypeName = "error getting joke types",}).ToArray();
@@ -188,7 +192,10 @@ else
         {
             // Parse the response body
             jokes = await response.Content.ReadFromJsonAsync<Joke[]>();
-
+            if (jokes != null)
+            {
+                jokes = jokes.OrderBy(joke => joke.JokeID).ToArray();
+            }
         }
         else
         {
@@ -282,13 +289,13 @@ else
 
     private void UpdateJoke(Joke joke)
     {
-        if ((storyUpdate == null || storyUpdate == "") && (selectedTypeUpdate == null || !jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate)) && !toggleEdit)
+        if ((storyUpdate == null || storyUpdate == "") && (selectedTypeUpdate == null || !jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate)) && toggleEditOfJoke!=-1)
         {
             validationUpdateMessage = "You haven't made a change so no update need be applied. \nTo update the joke click on the joke text";           
         }
         else
         {
-            if ( selectedTypeUpdate == null || jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate))
+            if ( selectedTypeUpdate == null || !jokeTypes.Select(type => type.TypeName).Contains(selectedTypeUpdate))
             {
                 selectedTypeUpdate = joke.JokeType;
             }
@@ -330,6 +337,8 @@ else
                 validationUpdateMessage = $"{response.StatusCode}: there was an error updating your joke";
             }
         }
+        storyUpdate = null;
+        selectedTypeUpdate = null;
     }
 
     private Task TypeChange(ChangeEventArgs e)
@@ -432,6 +441,8 @@ else
         public int JokeID { get; set; }
         public string? Story { get; set; }
         public string? JokeType { get; set; }
+        
+
     }
 
     private class JokeType
